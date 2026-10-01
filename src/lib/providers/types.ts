@@ -26,7 +26,7 @@ export interface ReasonRequest {
   history: { role: "user" | "assistant"; content: string }[];
   /** ask for a simplified restatement of the previous answer */
   simplify?: boolean;
-  previousTopicId?: string;
+  previousTopicId?: string | undefined;
 }
 export interface ReasonResult {
   text: string;
