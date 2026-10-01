@@ -25,16 +25,8 @@ export function Wordmark({
 }
 
 /** White editorial sheet on the black ground. */
-export function PaperPanel({
-  children,
-  className,
-}: {
-  children: ReactNode;
-  className?: string;
-}) {
-  return (
-    <section className={cn("paper relative z-10 w-full", className)}>{children}</section>
-  );
+export function PaperPanel({ children, className }: { children: ReactNode; className?: string }) {
+  return <section className={cn("paper relative z-10 w-full", className)}>{children}</section>;
 }
 
 /** Minimal header: wordmark left, scheme label right. Optional slot below. */

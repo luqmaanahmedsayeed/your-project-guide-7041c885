@@ -142,6 +142,8 @@ export function useVoiceOutput(lang: Lang) {
   const [serverTts, setServerTts] = useState(false);
   const [speakingId, setSpeakingId] = useState<string | null>(null);
   const audioRef = useRef<HTMLAudioElement | null>(null);
+  const audioCacheRef = useRef(new Map<string, string>());
+  const playbackRequestRef = useRef(0);
 
   useEffect(() => {
     let active = true;
@@ -166,13 +168,23 @@ export function useVoiceOutput(lang: Lang) {
   const play = useCallback(
     async (id: string, text: string): Promise<boolean> => {
       stop();
+      const requestId = ++playbackRequestRef.current;
       setSpeakingId(id);
 
       if (serverTts) {
         try {
-          const result = await synthesize({ data: { text, lang } });
-          if (result.ok && result.audioBase64) {
-            const audio = new Audio(`data:${result.mimeType};base64,${result.audioBase64}`);
+          let source = audioCacheRef.current.get(text);
+          let mimeType = "audio/mpeg";
+          if (!source) {
+            const result = await synthesize({ data: { text, lang } });
+            if (result.ok && result.audioBase64) {
+              source = result.audioBase64;
+              mimeType = result.mimeType;
+              audioCacheRef.current.set(text, source);
+            }
+          }
+          if (source && requestId === playbackRequestRef.current) {
+            const audio = new Audio(`data:${mimeType};base64,${source}`);
             audioRef.current = audio;
             audio.onended = () => setSpeakingId(null);
             await audio.play();

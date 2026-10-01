@@ -106,7 +106,11 @@ export const pmuyKnowledge = {
           "Keep your documents ready",
           "Apply on the official PMUY website",
         ],
-        hi: ["अपनी पात्रता देखें", "अपने दस्तावेज़ तैयार रखें", "आधिकारिक PMUY वेबसाइट पर आवेदन करें"],
+        hi: [
+          "अपनी पात्रता देखें",
+          "अपने दस्तावेज़ तैयार रखें",
+          "आधिकारिक PMUY वेबसाइट पर आवेदन करें",
+        ],
       },
     },
     {

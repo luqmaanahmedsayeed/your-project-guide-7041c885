@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { ArrowRight, Keyboard, RotateCcw, Volume2 } from "lucide-react";
+import { ArrowRight, Keyboard, Mic, RotateCcw, Volume2 } from "lucide-react";
 import { t, type Lang } from "@/lib/i18n";
 import { Avatar, PaperPanel, PanelHeader } from "./primitives";
 import { Portrait } from "./Portrait";
@@ -29,6 +29,7 @@ export function Conversation({
   onListen,
   onSimplify,
   onNextStep,
+  onStartVoice,
 }: {
   lang: Lang;
   messages: Message[];
@@ -41,6 +42,7 @@ export function Conversation({
   onListen: (message: Message) => void;
   onSimplify: (message: Message) => void;
   onNextStep: (message: Message) => void;
+  onStartVoice: () => void;
 }) {
   const s = t(lang);
   const [value, setValue] = useState("");
@@ -217,6 +219,14 @@ export function Conversation({
               placeholder={s.askAnother}
               className="min-w-0 flex-1 bg-transparent py-2.5 font-body text-base text-paper-foreground outline-none placeholder:text-muted-foreground"
             />
+            <button
+              type="button"
+              onClick={onStartVoice}
+              aria-label={s.askAnother}
+              className="flex size-11 shrink-0 items-center justify-center rounded-full bg-muted text-paper-foreground transition-colors hover:bg-muted/80"
+            >
+              <Mic className="size-5" aria-hidden />
+            </button>
             <button
               type="submit"
               aria-label={s.send}

@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useServerFn } from "@tanstack/react-start";
 import { t, type Lang } from "@/lib/i18n";
 import { OFFICIAL_PMUY_URL } from "@/lib/pmuy-knowledge";
@@ -33,6 +33,13 @@ export function SahayiApp() {
   const [error, setError] = useState<string | null>(null);
   const [applyStage, setApplyStage] = useState<ApplyStage>("age");
   const [portal, setPortal] = useState(OFFICIAL_PMUY_URL);
+  const requestIdRef = useRef(0);
+  const [eligibilityState, setEligibilityState] = useState({
+    age18OrOlder: null as boolean | null,
+    hasLpgConnection: null as boolean | null,
+    isEligible: null as boolean | null,
+    blockedReason: null as string | null,
+  });
 
   const s = t(lang);
   const ask = useServerFn(reasonAnswer);
@@ -47,7 +54,8 @@ export function SahayiApp() {
   }, [loadPortal]);
 
   const runQuestion = useCallback(
-    async (question: string) => {
+    async (question: string, useVoice = false) => {
+      const requestId = ++requestIdRef.current;
       setError(null);
       setScreen("chat");
       const history = messages.map((message) => ({
@@ -64,26 +72,28 @@ export function SahayiApp() {
           data: { question, lang, history, simplify: false },
         });
         if (!result.ok) throw new Error("unavailable");
-        setMessages((prev) => [
-          ...prev,
-          {
-            id: nextId(),
-            role: "sahayi",
-            text: result.text,
-            bullets: result.bullets,
-            note: result.bullets.length ? s.docsIntro && undefined : undefined,
-            time: clock(),
-            topicId: result.topicId,
-            nextLabel: result.bullets.length ? s.viewProcess : s.nextStep,
-          },
-        ]);
+        if (requestId !== requestIdRef.current) return;
+        const answer: Message = {
+          id: nextId(),
+          role: "sahayi",
+          text: result.text,
+          bullets: result.bullets,
+          note: result.bullets.length ? s.docsIntro && undefined : undefined,
+          time: clock(),
+          topicId: result.topicId,
+          nextLabel: result.bullets.length ? s.viewProcess : s.nextStep,
+        };
+        setMessages((prev) => [...prev, answer]);
+        if (useVoice) {
+          void voiceOut.play(answer.id, [answer.text, ...(answer.bullets ?? [])].join(". "));
+        }
       } catch {
         setError(s.errAi);
       } finally {
         setPending(false);
       }
     },
-    [ask, lang, messages, s],
+    [ask, lang, messages, s, voiceOut],
   );
 
   const handleAsk = useCallback(
@@ -108,7 +118,7 @@ export function SahayiApp() {
         setError(s.errVoice);
         return;
       }
-      void runQuestion(text);
+      void runQuestion(text, true);
     } catch {
       setScreen("home");
       setError(s.errMic);
@@ -239,10 +249,24 @@ export function SahayiApp() {
         question={s.docsIntro}
         bullets={
           lang === "hi"
-            ? ["आधार कार्ड", "पते का प्रमाण", "बैंक खाते की जानकारी", "KYC दस्तावेज़ (यदि आवश्यक हो)"]
-            : ["Aadhaar card", "Address proof", "Bank account details", "KYC documents (if required)"]
+            ? [
+                "आधार कार्ड",
+                "पते का प्रमाण",
+                "बैंक खाते की जानकारी",
+                "KYC दस्तावेज़ (यदि आवश्यक हो)",
+              ]
+            : [
+                "Aadhaar card",
+                "Address proof",
+                "Bank account details",
+                "KYC documents (if required)",
+              ]
         }
-        note={lang === "hi" ? "कृपया नवीनतम सूची के लिए आधिकारिक वेबसाइट देखें।" : "Please check the official website for the latest list of documents."}
+        note={
+          lang === "hi"
+            ? "कृपया नवीनतम सूची के लिए आधिकारिक वेबसाइट देखें।"
+            : "Please check the official website for the latest list of documents."
+        }
         primaryLabel={s.docsReady}
         onPrimary={() => setScreen("handoff")}
         onBack={() => setApplyStage("lpg")}
@@ -267,6 +291,7 @@ export function SahayiApp() {
         onListen={handleListen}
         onSimplify={handleSimplify}
         onNextStep={handleNextStep}
+        onStartVoice={startVoice}
       />
     );
   }

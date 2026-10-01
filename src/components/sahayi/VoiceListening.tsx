@@ -49,10 +49,7 @@ export function VoiceListening({
             </button>
           </div>
 
-          <p
-            className="mt-8 font-body text-3xl text-foreground sm:text-4xl"
-            aria-live="polite"
-          >
+          <p className="mt-8 font-body text-3xl text-foreground sm:text-4xl" aria-live="polite">
             {s.listening}
           </p>
           <p className="mt-2 font-body text-lg text-foreground/70">{s.startSpeaking}</p>
