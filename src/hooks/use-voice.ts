@@ -14,10 +14,7 @@ interface SpeechRecognitionLike {
   start(): void;
   stop(): void;
   onresult:
-    | ((event: {
-        results: ArrayLike<ArrayLike<SpeechRecognitionAlternative>>;
-      }) => void)
-    | null;
+    ((event: { results: ArrayLike<ArrayLike<SpeechRecognitionAlternative>> }) => void) | null;
   onerror: (() => void) | null;
   onend: (() => void) | null;
 }
@@ -69,7 +66,12 @@ export function useVoiceInput(lang: Lang) {
     if (serverStt) {
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
       return await new Promise<string | null>((resolve) => {
-        const recorder = new MediaRecorder(stream);
+        const mimeType = MediaRecorder.isTypeSupported("audio/wav")
+          ? "audio/wav"
+          : MediaRecorder.isTypeSupported("audio/mpeg")
+            ? "audio/mpeg"
+            : "audio/webm";
+        const recorder = new MediaRecorder(stream, { mimeType });
         recorderRef.current = recorder;
         chunksRef.current = [];
         recorder.ondataavailable = (event) => {
@@ -87,7 +89,7 @@ export function useVoiceInput(lang: Lang) {
             const result = await transcribe({
               data: {
                 audioBase64: btoa(binary),
-                mimeType: recorder.mimeType || "audio/webm",
+                mimeType: recorder.mimeType || mimeType,
                 lang,
               },
             });

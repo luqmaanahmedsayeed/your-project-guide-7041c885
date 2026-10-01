@@ -10,21 +10,20 @@ import {
 /** Primary: Krutrim speech-to-text. */
 const krutrim: SttAdapter = {
   id: "stt.primary",
-  isConfigured: () => Boolean(env("KRUTRIM_API_KEY") && env("KRUTRIM_STT_URL")),
+  isConfigured: () => Boolean(env("KRUTRIM_API_KEY")),
   async transcribe(req: SttRequest): Promise<SttResult> {
-    const res = await fetchWithTimeout(env("KRUTRIM_STT_URL")!, {
-      method: "POST",
-      headers: {
-        "content-type": "application/json",
-        authorization: `Bearer ${env("KRUTRIM_API_KEY")}`,
+    const form = new FormData();
+    const bytes = Uint8Array.from(atob(req.audioBase64), (char) => char.charCodeAt(0));
+    form.append("file", new Blob([bytes], { type: req.mimeType }), "sahayi.wav");
+    form.append("lang_code", req.lang === "hi" ? "hin" : "eng");
+    const res = await fetchWithTimeout(
+      "https://cloud.olakrutrim.com/api/v1/languagelabs/transcribe/upload",
+      {
+        method: "POST",
+        headers: { authorization: `Bearer ${env("KRUTRIM_API_KEY")}` },
+        body: form,
       },
-      body: JSON.stringify({
-        model: env("KRUTRIM_STT_MODEL") ?? "default",
-        language: req.lang,
-        audio: req.audioBase64,
-        mime_type: req.mimeType,
-      }),
-    });
+    );
     if (!res.ok) throw new Error("stt_primary_http_" + res.status);
     const data = (await res.json()) as { text?: string; transcript?: string };
     const text = (data.text ?? data.transcript ?? "").trim();
@@ -36,19 +35,17 @@ const krutrim: SttAdapter = {
 /** Fallback: YourVoic speech-to-text. */
 const yourvoic: SttAdapter = {
   id: "stt.fallback",
-  isConfigured: () => Boolean(env("YOURVOIC_API_KEY") && env("YOURVOIC_STT_URL")),
+  isConfigured: () => Boolean(env("YOURVOIC_AI_API")),
   async transcribe(req: SttRequest): Promise<SttResult> {
-    const res = await fetchWithTimeout(env("YOURVOIC_STT_URL")!, {
+    const form = new FormData();
+    const bytes = Uint8Array.from(atob(req.audioBase64), (char) => char.charCodeAt(0));
+    form.append("file", new Blob([bytes], { type: req.mimeType }), "sahayi.wav");
+    form.append("model", "cipher-fast");
+    form.append("language", req.lang === "hi" ? "hi" : "en");
+    const res = await fetchWithTimeout("https://yourvoic.com/api/v1/stt/transcribe", {
       method: "POST",
-      headers: {
-        "content-type": "application/json",
-        authorization: `Bearer ${env("YOURVOIC_API_KEY")}`,
-      },
-      body: JSON.stringify({
-        language: req.lang,
-        audio: req.audioBase64,
-        mime_type: req.mimeType,
-      }),
+      headers: { "X-API-Key": env("YOURVOIC_AI_API")! },
+      body: form,
     });
     if (!res.ok) throw new Error("stt_fallback_http_" + res.status);
     const data = (await res.json()) as { text?: string; transcript?: string };
@@ -64,7 +61,11 @@ export function sttConfigured(): boolean {
 
 export async function transcribe(req: SttRequest): Promise<SttResult> {
   return withFallback<SttResult>([
-    { id: krutrim.id, isConfigured: () => krutrim.isConfigured(), run: () => krutrim.transcribe(req) },
+    {
+      id: krutrim.id,
+      isConfigured: () => krutrim.isConfigured(),
+      run: () => krutrim.transcribe(req),
+    },
     {
       id: yourvoic.id,
       isConfigured: () => yourvoic.isConfigured(),
