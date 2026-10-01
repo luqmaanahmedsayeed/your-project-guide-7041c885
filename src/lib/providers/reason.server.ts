@@ -72,12 +72,12 @@ async function chatCompletion(
 /** Primary: Groq. */
 const groq: ReasonAdapter = {
   id: "reason.primary",
-  isConfigured: () => Boolean(env("GROQ_API_KEY")),
+  isConfigured: () => Boolean(env("GROQ_AI_API")),
   async answer(req) {
     const text = await chatCompletion(
-      env("GROQ_BASE_URL") ?? "https://api.groq.com/openai/v1/chat/completions",
-      env("GROQ_API_KEY")!,
-      env("GROQ_MODEL") ?? "llama-3.3-70b-versatile",
+      "https://api.groq.com/openai/v1/chat/completions",
+      env("GROQ_AI_API")!,
+      "openai/gpt-oss-20b",
       req,
     );
     return { text, bullets: [], topicId: req.previousTopicId ?? "model" };
@@ -90,9 +90,9 @@ const openrouter: ReasonAdapter = {
   isConfigured: () => Boolean(env("OPENROUTER_API_KEY")),
   async answer(req) {
     const text = await chatCompletion(
-      env("OPENROUTER_BASE_URL") ?? "https://openrouter.ai/api/v1/chat/completions",
+      "https://openrouter.ai/api/v1/chat/completions",
       env("OPENROUTER_API_KEY")!,
-      env("OPENROUTER_MODEL") ?? "meta-llama/llama-3.3-70b-instruct",
+      "openai/gpt-oss-20b",
       req,
     );
     return { text, bullets: [], topicId: req.previousTopicId ?? "model" };
