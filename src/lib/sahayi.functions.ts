@@ -76,6 +76,19 @@ export const ttsSpeak = createServerFn({ method: "POST" })
     }
   });
 
+/**
+ * Tells the UI whether server-side voice providers are available, so it can
+ * silently use the device's own speech capabilities instead. No provider
+ * names are exposed.
+ */
+export const getVoiceCapabilities = createServerFn({ method: "GET" }).handler(async () => {
+  const [{ sttConfigured }, { ttsConfigured }] = await Promise.all([
+    import("./providers/stt.server"),
+    import("./providers/tts.server"),
+  ]);
+  return { serverStt: sttConfigured(), serverTts: ttsConfigured() };
+});
+
 /** Official portal URL, configurable server-side. */
 export const getPortalUrl = createServerFn({ method: "GET" }).handler(async () => {
   const { OFFICIAL_PMUY_URL } = await import("./pmuy-knowledge");
